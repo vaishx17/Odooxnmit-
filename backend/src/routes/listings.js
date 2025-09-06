@@ -30,10 +30,15 @@ router.post("/", async (req, res) => {
   try {
     const { title, description, price } = req.body;
     const listing = await prisma.listing.create({
-      data: { title, description, price },
+      data: { 
+        title, 
+        description, 
+        price: parseFloat(price)  // force number
+      },
     });
     res.json(listing);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -55,12 +60,16 @@ router.put("/:id", async (req, res) => {
 
 // DELETE /listings/:id → delete a listing
 router.delete("/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
   try {
-    const id = parseInt(req.params.id);
-    await prisma.listing.delete({ where: { id } });
-    res.json({ message: "Listing deleted" });
+    const listing = await prisma.listing.delete({ where: { id } });
+    res.json({ message: "Listing deleted", listing });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === "P2025") { // Prisma error: record not found
+      res.status(404).json({ message: "Listing not found" });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
