@@ -1,33 +1,67 @@
 const express = require("express");
 const router = express.Router();
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
 
-// GET /listings
-router.get("/", (req, res) => {
-  res.json([
-    { id: 1, title: "Listing A", description: "Description A", price: 10 },
-    { id: 2, title: "Listing B", description: "Description B", price: 20 }
-  ]);
+// GET /listings → return all listings
+router.get("/", async (req, res) => {
+  try {
+    const listings = await prisma.listing.findMany();
+    res.json(listings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// GET /listings/:id
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
-  res.json({ id, title: `Listing ${id}`, description: `Description ${id}`, price: id * 10 });
+// GET /listings/:id → return one listing
+router.get("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const listing = await prisma.listing.findUnique({ where: { id } });
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
+    res.json(listing);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// POST /listings
-router.post("/", (req, res) => {
-  res.json({ message: "Create listing (stub)" });
+// POST /listings → create a new listing
+router.post("/", async (req, res) => {
+  try {
+    const { title, description, price } = req.body;
+    const listing = await prisma.listing.create({
+      data: { title, description, price },
+    });
+    res.json(listing);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// PUT /listings/:id
-router.put("/:id", (req, res) => {
-  res.json({ message: `Update listing ${req.params.id} (stub)` });
+// PUT /listings/:id → update a listing
+router.put("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { title, description, price } = req.body;
+    const listing = await prisma.listing.update({
+      where: { id },
+      data: { title, description, price },
+    });
+    res.json(listing);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// DELETE /listings/:id
-router.delete("/:id", (req, res) => {
-  res.json({ message: `Delete listing ${req.params.id} (stub)` });
+// DELETE /listings/:id → delete a listing
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.listing.delete({ where: { id } });
+    res.json({ message: "Listing deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
